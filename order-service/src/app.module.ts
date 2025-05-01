@@ -1,10 +1,19 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
+import { OrderModule } from './orders/order.module';
+import { AppConfigModule } from './config/config.module';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    AppConfigModule,
+    MongooseModule.forRootAsync({
+      useFactory: (configService) => ({
+        uri: configService.get('database.uri'),
+      }),
+      inject: [ConfigService],
+    }),
+    OrderModule,
+  ],
 })
 export class AppModule {}
