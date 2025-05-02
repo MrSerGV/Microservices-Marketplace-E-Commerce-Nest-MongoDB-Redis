@@ -1,0 +1,165 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
+import { ClientSession } from 'mongoose';
+
+import { OrderService } from './order.service';
+import { OrderRepository } from './order.repository';
+import { InvoiceProducer } from '../messaging/invoice-producer';
+import { CreateOrderDto, PathParamDto, UpdateOrderDto } from './order.dto';
+import { Order, OrderStatus } from './order.schema';
+
+
+const createMockOrder = (overrides = {}): Order => ({
+    orderId: '123e4567-e89b-12d3-a456-426614174000',
+    price: 100,
+    quantity: 2,
+    productId: '12345',
+    customerId: '67890',
+    sellerId: 'a8098c1a-f86e-11da-bd1a-00112444be1e',
+    status: OrderStatus.Created,
+    ...overrides,
+}) as Order;
+
+const createMockCreateOrderDto = (overrides = {}): CreateOrderDto => ({
+    price: 100,
+    quantity: 2,
+    productId: '12345',
+    customerId: '67890',
+    sellerId: 'a8098c1a-f86e-11da-bd1a-00112444be1e',
+    ...overrides,
+});
+
+const createMockUpdateOrderDto = (overrides = {}): UpdateOrderDto => ({
+    price: 150,
+    quantity: 3,
+    status: OrderStatus.Shipped,
+    ...overrides,
+});
+
+const createMockPathParamDto = (overrides = {}): PathParamDto => ({
+    id: 'a8098c1a-f86e-11da-bd1a-00112444be1e',
+    ...overrides,
+});
+
+const session: ClientSession = {
+    commitTransaction: jest.fn(),
+    abortTransaction: jest.fn(),
+    endSession: jest.fn()
+} as unknown as ClientSession;
+
+describe('OrderService', () => {
+    let orderService: OrderService;
+    let orderRepository: OrderRepository;
+    let invoiceProducer: InvoiceProducer;
+
+    beforeEach(async () => {
+        const module: TestingModule = await Test.createTestingModule({
+            providers: [
+                OrderService,
+                {
+                    provide: OrderRepository,
+                    useValue: {
+                        startTransaction: jest.fn(),
+                        createOrderInstance: jest.fn(),
+                        save: jest.fn(),
+                        findAll: jest.fn(),
+                        findById: jest.fn(),
+                        update: jest.fn(),
+                    },
+                },
+                {
+                    provide: InvoiceProducer,
+                    useValue: {
+                        sendOrderCreated: jest.fn(),
+                        sendOrderShipped: jest.fn(),
+                    },
+                }
+            ],
+        }).compile();
+
+        orderService = module.get<OrderService>(OrderService);
+        orderRepository = module.get<OrderRepository>(OrderRepository);
+        invoiceProducer = module.get<InvoiceProducer>(InvoiceProducer);
+    });
+
+    describe('createOrder', () => {
+        it('should create and save an order successfully', async () => {
+            jest.spyOn(orderRepository, 'startTransaction').mockResolvedValue(session);
+            jest.spyOn(orderRepository, 'createOrderInstance').mockResolvedValue(createMockOrder());
+            jest.spyOn(orderRepository, 'save').mockResolvedValue(createMockOrder());
+            jest.spyOn(invoiceProducer, 'sendOrderCreated').mockResolvedValue();
+
+            const result = await orderService.createOrder(createMockCreateOrderDto());
+
+            expect(orderRepository.startTransaction).toHaveBeenCalled();
+            expect(orderRepository.createOrderInstance).toHaveBeenCalledWith(createMockCreateOrderDto(), session);
+            expect(orderRepository.save).toHaveBeenCalledWith(createMockOrder(), session);
+            expect(invoiceProducer.sendOrderCreated).toHaveBeenCalledWith(createMockOrder().orderId);
+            expect(session.commitTransaction).toHaveBeenCalled();
+            expect(result).toEqual(createMockOrder());
+        });
+
+        it('should handle errors during order creation', async () => {
+            jest.spyOn(orderRepository, 'startTransaction').mockResolvedValue(session);
+            jest.spyOn(orderRepository, 'createOrderInstance').mockRejectedValue(new Error('Failed to create order'));
+
+            await expect(orderService.createOrder(createMockCreateOrderDto())).rejects.toThrow('Failed to create order');
+            expect(session.abortTransaction).toHaveBeenCalled();
+        });
+    });
+
+    describe('listOrders', () => {
+        it('should fetch and return all orders', async () => {
+            jest.spyOn(orderRepository, 'findAll').mockResolvedValue([createMockOrder()]);
+
+            const result = await orderService.listOrders();
+
+            expect(orderRepository.findAll).toHaveBeenCalled();
+            expect(result).toEqual([createMockOrder()]);
+        });
+    });
+
+    describe('getOrderDetails', () => {
+        it('should return order details when order exists', async () => {
+            jest.spyOn(orderRepository, 'findById').mockResolvedValue(createMockOrder());
+
+            const result = await orderService.getOrderDetails(createMockPathParamDto());
+
+            expect(orderRepository.findById).toHaveBeenCalledWith(createMockPathParamDto());
+            expect(result).toEqual(createMockOrder());
+        });
+
+        it('should throw NotFoundException when order does not exist', async () => {
+            jest.spyOn(orderRepository, 'findById').mockResolvedValue(null);
+
+            await expect(orderService.getOrderDetails(createMockPathParamDto())).rejects.toThrow(NotFoundException);
+            expect(orderRepository.findById).toHaveBeenCalledWith(createMockPathParamDto());
+        });
+    });
+
+    describe('updateOrder', () => {
+        it('should update and save an order successfully', async () => {
+            jest.spyOn(orderRepository, 'startTransaction').mockResolvedValue(session);
+            jest.spyOn(orderRepository, 'findById').mockResolvedValue(createMockOrder());
+            jest.spyOn(orderRepository, 'update').mockResolvedValue(createMockOrder({ status: OrderStatus.Shipped }));
+            jest.spyOn(invoiceProducer, 'sendOrderShipped').mockResolvedValue();
+
+            const result = await orderService.updateOrder(createMockPathParamDto(), createMockUpdateOrderDto());
+
+            expect(orderRepository.startTransaction).toHaveBeenCalled();
+            expect(orderRepository.update).toHaveBeenCalledWith(createMockOrder(), createMockUpdateOrderDto(), session);
+            expect(session.commitTransaction).toHaveBeenCalled();
+            expect(result).toEqual(createMockOrder({ status: OrderStatus.Shipped }));
+        });
+
+        it('should handle errors during order update', async () => {
+            jest.spyOn(orderRepository, 'startTransaction').mockResolvedValue(session);
+            jest.spyOn(orderRepository, 'update').mockRejectedValue(new Error('Failed to update order'));
+
+            await expect(
+                orderService.updateOrder(createMockPathParamDto(), createMockUpdateOrderDto()),
+            ).rejects.toThrow('Failed to update order');
+            expect(session.abortTransaction).toHaveBeenCalled();
+        });
+    });
+});
