@@ -42,14 +42,15 @@ services:
       context: ./order-service
     container_name: order-service-container
     ports:
-      - "${APP_PORT}:${APP_PORT}"
+      - "${ORDER_PORT}:${ORDER_PORT}"
     environment:
       - NODE_ENV=${NODE_ENV}
-      - APP_PORT=${APP_PORT}
-      - DATABASE_URI=${DATABASE_URI}
+      - ORDER_PORT=${ORDER_PORT}
+      - DATABASE_URL=${DATABASE_URL}
       - DATABASE_RS=${DATABASE_RS}
       - DATABASE_NAME=${DATABASE_NAME}
       - DATABASE_PORT=${DATABASE_PORT}
+      - MESSAGE_BROKER_URL=${MESSAGE_BROKER_URL}
     depends_on:
       - mongodb
     restart: unless-stopped
@@ -58,6 +59,16 @@ services:
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
+
+
+  redis:
+    image: redis:alpine
+    container_name: redis-container
+    ports:
+      - "${MESSAGE_BROKER_PORT}:${MESSAGE_BROKER_PORT}"
+    restart: unless-stopped
+    networks:
+      - order-service-network
 
 networks:
   order-service-network:

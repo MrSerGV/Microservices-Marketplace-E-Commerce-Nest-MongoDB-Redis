@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 
 import { OrderRepository } from './order.repository';
 import { CreateOrderDto, PathParamDto, UpdateOrderDto } from './order.dto';
-import { InvoiceProducer } from '../messaging/invoice-producer';
+import { MessagingService } from '../messaging/messaging.service';
 import { Order, OrderStatus } from './order.schema';
 
 @Injectable()
@@ -11,7 +11,7 @@ export class OrderService {
 
   constructor(
       private readonly orderRepository: OrderRepository,
-      private readonly invoiceProducer: InvoiceProducer,
+      private readonly invoiceProducer: MessagingService,
   ) {}
 
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {

@@ -4,7 +4,7 @@ import { ClientSession } from 'mongoose';
 
 import { OrderService } from './order.service';
 import { OrderRepository } from './order.repository';
-import { InvoiceProducer } from '../messaging/invoice-producer';
+import { MessagingService } from '../messaging/messaging.service';
 import { CreateOrderDto, PathParamDto, UpdateOrderDto } from './order.dto';
 import { Order, OrderStatus } from './order.schema';
 
@@ -50,7 +50,7 @@ const session: ClientSession = {
 describe('OrderService', () => {
     let orderService: OrderService;
     let orderRepository: OrderRepository;
-    let invoiceProducer: InvoiceProducer;
+    let invoiceProducer: MessagingService;
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -68,7 +68,7 @@ describe('OrderService', () => {
                     },
                 },
                 {
-                    provide: InvoiceProducer,
+                    provide: MessagingService,
                     useValue: {
                         sendOrderCreated: jest.fn(),
                         sendOrderShipped: jest.fn(),
@@ -79,7 +79,7 @@ describe('OrderService', () => {
 
         orderService = module.get<OrderService>(OrderService);
         orderRepository = module.get<OrderRepository>(OrderRepository);
-        invoiceProducer = module.get<InvoiceProducer>(InvoiceProducer);
+        invoiceProducer = module.get<MessagingService>(MessagingService);
     });
 
     describe('createOrder', () => {
