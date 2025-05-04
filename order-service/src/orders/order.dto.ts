@@ -1,4 +1,4 @@
-import { IsNumber, IsPositive, IsUUID, IsEnum, IsDefined } from 'class-validator';
+import { IsNumber, IsPositive, IsUUID, IsDefined, IsIn } from 'class-validator';
 
 import { OrderStatus } from './order.schema';
 
@@ -30,11 +30,11 @@ export class UpdateOrderDto {
     @IsPositive()
     quantity: number;
 
-    @IsEnum(OrderStatus)
+    @IsIn(Object.values(OrderStatus).filter(status => status !== OrderStatus.Created))
     status: OrderStatus;
 }
 
 export class PathParamDto {
-    @IsUUID()
+    @IsUUID('4', { message: 'ID must be a valid UUID version 4' })
     id: string;
 }

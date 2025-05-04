@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Param, Body } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Param, Body, ValidationPipe } from '@nestjs/common';
 
 import { OrderService } from './order.service';
 import { CreateOrderDto, PathParamDto, UpdateOrderDto } from './order.dto';
@@ -9,7 +9,7 @@ export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Post('create')
-  async createOrder(@Body() createOrderDto: CreateOrderDto): Promise<Order> {
+  async createOrder(@Body(ValidationPipe) createOrderDto: CreateOrderDto): Promise<Order> {
     return await this.orderService.createOrder(createOrderDto);
   }
 
@@ -19,14 +19,14 @@ export class OrderController {
   }
 
   @Get(':id')
-  async getOrderDetails(@Param('id') id: PathParamDto): Promise<Order> {
+  async getOrderDetails(@Param(ValidationPipe) id: PathParamDto): Promise<Order> {
     return await this.orderService.getOrderDetails(id);
   }
 
   @Patch(':id/update')
   async updateOrder(
-      @Param('id') id: PathParamDto,
-      @Body() updateOrderDto: UpdateOrderDto,
+      @Param(ValidationPipe) id: PathParamDto,
+      @Body(ValidationPipe) updateOrderDto: UpdateOrderDto,
   ):Promise<Order> {
     return await this.orderService.updateOrder(id, updateOrderDto);
   }

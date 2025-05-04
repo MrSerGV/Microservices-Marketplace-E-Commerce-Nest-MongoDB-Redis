@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 
 import { OrderRepository } from './order.repository';
 import { CreateOrderDto, PathParamDto, UpdateOrderDto } from './order.dto';
@@ -63,6 +63,11 @@ export class OrderService {
     try {
       this.logger.log(`Updating order ID: ${orderId}`);
       const order = await this.getOrderDetails(orderId);
+
+      if (order.status === OrderStatus.Shipped && updateOrderDto.status !== OrderStatus.Shipped) {
+        throw new BadRequestException('Cannot modify an order after it has been shipped');
+      }
+
       const updatedOrder = await this.orderRepository.update(order, updateOrderDto, session);
 
       if (order.status === OrderStatus.Shipped) {
