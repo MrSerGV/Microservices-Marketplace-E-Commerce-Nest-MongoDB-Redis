@@ -1,15 +1,18 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
+import { MongooseModule, MongooseModuleOptions } from '@nestjs/mongoose';
 import { OrderModule } from './orders/order.module';
 import { AppConfigModule } from './config/config.module';
+
 
 @Module({
   imports: [
     AppConfigModule,
     MongooseModule.forRootAsync({
-      useFactory: (configService) => ({
-        uri: configService.get('database.uri'),
+      useFactory: (configService: ConfigService): MongooseModuleOptions => ({
+        uri: configService.get<string>('database.uri'),
+        replicaSet: configService.get<string>('database.rs'),
+        dbName: configService.get<string>('database.dbName'),
       }),
       inject: [ConfigService],
     }),
