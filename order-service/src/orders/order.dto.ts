@@ -1,4 +1,4 @@
-import { IsNumber, IsPositive, IsUUID, IsDefined, IsIn } from 'class-validator';
+import { IsNumber, IsPositive, IsUUID, IsDefined, IsIn, IsOptional } from 'class-validator';
 
 import { OrderStatus } from './order.schema';
 
@@ -22,19 +22,26 @@ export class CreateOrderDto {
 }
 
 export class UpdateOrderDto {
+    @IsOptional()
     @IsNumber()
     @IsPositive()
-    price: number;
+    price?: number;
 
+    @IsOptional()
     @IsNumber()
     @IsPositive()
-    quantity: number;
+    quantity?: number;
 
+    @IsOptional()
     @IsIn(Object.values(OrderStatus).filter(status => status !== OrderStatus.Created))
-    status: OrderStatus;
+    status?: OrderStatus;
 }
 
-export class PathParamDto {
-    @IsUUID('4', { message: 'ID must be a valid UUID version 4' })
+export class OrderPathParamDto {
+    @IsUUID('4', { message: 'Order ID must be a valid UUID version 4' })
     id: string;
+}
+
+export class SellerPathParamDto {
+    sellerId: string;
 }

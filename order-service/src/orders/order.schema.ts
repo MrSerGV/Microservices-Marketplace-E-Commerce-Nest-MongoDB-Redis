@@ -1,4 +1,5 @@
-import { Document, Schema } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 
 export enum OrderStatus {
@@ -9,27 +10,28 @@ export enum OrderStatus {
     Shipped = 'Shipped',
 }
 
-export interface Order extends Document {
-    orderId: string;
+@Schema()
+export class Order extends Document {
+    @Prop({ required: true, default: () => uuidv4() })
+    _id: string = uuidv4();
+
+    @Prop({ required: true })
     price: number;
+
+    @Prop({ required: true })
     quantity: number;
+
+    @Prop({ type: Object, required: true })
     productId: any;
+
+    @Prop({ type: Object, required: true })
     customerId: any;
+
+    @Prop({ required: true })
     sellerId: string;
+
+    @Prop({ type: String, enum: Object.values(OrderStatus), required: true, default: OrderStatus.Created })
     status: OrderStatus;
 }
 
-export const OrderSchema = new Schema({
-    orderId: { type: String, required: true, default: uuidv4 },
-    price: { type: Number, required: true },
-    quantity: { type: Number, required: true },
-    productId: { type: Schema.Types.Mixed, required: true },
-    customerId: { type: Schema.Types.Mixed, required: true },
-    sellerId: { type: String, required: true },
-    status: {
-        type: String,
-        enum: Object.values(OrderStatus),
-        required: true,
-        default: OrderStatus.Created
-    },
-});
+export const OrderSchema = SchemaFactory.createForClass(Order);

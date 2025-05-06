@@ -2,12 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import { OrderController } from './order.controller';
 import { OrderService } from './order.service';
-import { CreateOrderDto, PathParamDto, UpdateOrderDto } from './order.dto';
+import { CreateOrderDto, OrderPathParamDto, SellerPathParamDto, UpdateOrderDto } from './order.dto';
 import { Order, OrderStatus } from './order.schema';
 
 
 const createMockOrder = (overrides = {}): Order => ({
-  orderId: '123e4567-e89b-12d3-a456-426614174000',
+  id: '123e4567-e89b-12d3-a456-426614174000',
   price: 100,
   quantity: 2,
   productId: '12345',
@@ -33,7 +33,12 @@ const createMockUpdateOrderDto = (overrides = {}): UpdateOrderDto => ({
   ...overrides,
 });
 
-const createMockPathParamDto = (overrides = {}): PathParamDto => ({
+const createMockOrderPathParamDto = (overrides = {}): OrderPathParamDto => ({
+  id: '123e4567-e89b-12d3-a456-426614174000',
+  ...overrides,
+});
+
+const createMockSellerPathParamDto = (overrides = {}): SellerPathParamDto => ({
   id: 'a8098c1a-f86e-11da-bd1a-00112444be1e',
   ...overrides,
 });
@@ -50,7 +55,7 @@ describe('OrderController', () => {
           provide: OrderService,
           useValue: {
             createOrder: jest.fn(),
-            listOrders: jest.fn(),
+            listOrdersBySellerId: jest.fn(),
             getOrderDetails: jest.fn(),
             updateOrder: jest.fn(),
           },
@@ -87,22 +92,22 @@ describe('OrderController', () => {
     });
   });
 
-  describe('listOrders', () => {
+  describe('listOrdersBySellerId', () => {
     it('should return a list of orders on success', async () => {
       const mockOrderList = [createMockOrder(), createMockOrder({ orderId: 'a8098c1a-f86e-11da-bd1a-00112444be11' })];
-      jest.spyOn(orderService, 'listOrders').mockResolvedValue(mockOrderList);
+      jest.spyOn(orderService, 'listOrdersBySellerId').mockResolvedValue(mockOrderList);
 
-      const result = await orderController.listOrders();
+      const result = await orderController.listOrders(createMockSellerPathParamDto());
 
-      expect(orderService.listOrders).toHaveBeenCalled();
+      expect(orderService.listOrdersBySellerId).toHaveBeenCalled();
       expect(result).toEqual(mockOrderList);
     });
 
     it('should throw an error if orderService.listOrders fails', async () => {
-      jest.spyOn(orderService, 'listOrders').mockRejectedValue(new Error('Failed to fetch orders'));
+      jest.spyOn(orderService, 'listOrdersBySellerId').mockRejectedValue(new Error('Failed to fetch orders'));
 
-      await expect(orderController.listOrders()).rejects.toThrow('Failed to fetch orders');
-      expect(orderService.listOrders).toHaveBeenCalled();
+      await expect(orderController.listOrders(createMockSellerPathParamDto())).rejects.toThrow('Failed to fetch orders');
+      expect(orderService.listOrdersBySellerId).toHaveBeenCalled();
     });
   });
 
@@ -111,19 +116,19 @@ describe('OrderController', () => {
       const mockOrder = createMockOrder();
       jest.spyOn(orderService, 'getOrderDetails').mockResolvedValue(mockOrder);
 
-      const result = await orderController.getOrderDetails(createMockPathParamDto());
+      const result = await orderController.getOrderDetails(createMockOrderPathParamDto());
 
-      expect(orderService.getOrderDetails).toHaveBeenCalledWith(createMockPathParamDto());
+      expect(orderService.getOrderDetails).toHaveBeenCalledWith((createMockOrderPathParamDto()).id);
       expect(result).toEqual(mockOrder);
     });
 
     it('should throw an error if getOrderDetails fails', async () => {
       jest.spyOn(orderService, 'getOrderDetails').mockRejectedValue(new Error('Order not found'));
 
-      await expect(orderController.getOrderDetails(createMockPathParamDto())).rejects.toThrow(
+      await expect(orderController.getOrderDetails(createMockOrderPathParamDto())).rejects.toThrow(
           'Order not found',
       );
-      expect(orderService.getOrderDetails).toHaveBeenCalledWith(createMockPathParamDto());
+      expect(orderService.getOrderDetails).toHaveBeenCalledWith((createMockOrderPathParamDto()).id);
     });
   });
 
@@ -137,12 +142,12 @@ describe('OrderController', () => {
       jest.spyOn(orderService, 'updateOrder').mockResolvedValue(updatedOrder);
 
       const result = await orderController.updateOrder(
-          createMockPathParamDto(),
+          createMockOrderPathParamDto(),
           createMockUpdateOrderDto(),
       );
 
       expect(orderService.updateOrder).toHaveBeenCalledWith(
-          createMockPathParamDto(),
+          createMockOrderPathParamDto(),
           createMockUpdateOrderDto(),
       );
       expect(result).toEqual(updatedOrder);
@@ -152,10 +157,10 @@ describe('OrderController', () => {
       jest.spyOn(orderService, 'updateOrder').mockRejectedValue(new Error('Failed to update order'));
 
       await expect(
-          orderController.updateOrder(createMockPathParamDto(), createMockUpdateOrderDto()),
+          orderController.updateOrder(createMockOrderPathParamDto(), createMockUpdateOrderDto()),
       ).rejects.toThrow('Failed to update order');
       expect(orderService.updateOrder).toHaveBeenCalledWith(
-          createMockPathParamDto(),
+          createMockOrderPathParamDto(),
           createMockUpdateOrderDto(),
       );
     });
