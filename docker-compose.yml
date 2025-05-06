@@ -48,7 +48,7 @@ services:
       - ORDER_PORT=${ORDER_PORT}
       - DATABASE_URL=${DATABASE_URL}
       - DATABASE_RS=${DATABASE_RS}
-      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_ORDER_NAME=${DATABASE_ORDER_NAME}
       - DATABASE_PORT=${DATABASE_PORT}
       - MESSAGE_BROKER_URL=${MESSAGE_BROKER_URL}
     depends_on:
@@ -69,6 +69,29 @@ services:
     restart: unless-stopped
     networks:
       - order-service-network
+
+  invoice-service:
+    build:
+      context: ./invoice-service
+    container_name: invoice-service-container
+    ports:
+      - "${INVOICE_PORT}:${INVOICE_PORT}"
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - INVOICE_PORT=${INVOICE_PORT}
+      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_RS=${DATABASE_RS}
+      - DATABASE_INVOICE_NAME=${DATABASE_INVOICE_NAME}
+      - DATABASE_PORT=${DATABASE_PORT}
+      - MESSAGE_BROKER_URL=${MESSAGE_BROKER_URL}
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+    networks:
+      - order-service-network
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
 
 networks:
   order-service-network:
