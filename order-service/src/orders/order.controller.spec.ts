@@ -39,7 +39,7 @@ const createMockOrderPathParamDto = (overrides = {}): OrderPathParamDto => ({
 });
 
 const createMockSellerPathParamDto = (overrides = {}): SellerPathParamDto => ({
-  id: 'a8098c1a-f86e-11da-bd1a-00112444be1e',
+  sellerId: 'a8098c1a-f86e-11da-bd1a-00112444be1e',
   ...overrides,
 });
 

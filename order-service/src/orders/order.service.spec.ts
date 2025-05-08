@@ -65,8 +65,7 @@ describe('OrderService', () => {
                     provide: OrderRepository,
                     useValue: {
                         startTransaction: jest.fn(),
-                        createOrderInstance: jest.fn(),
-                        save: jest.fn(),
+                        createAndSaveOrder: jest.fn(),
                         findBySellerId: jest.fn(),
                         findById: jest.fn(),
                         update: jest.fn(),
@@ -90,15 +89,13 @@ describe('OrderService', () => {
     describe('createOrder', () => {
         it('should create and save an order successfully', async () => {
             jest.spyOn(orderRepository, 'startTransaction').mockResolvedValue(session);
-            jest.spyOn(orderRepository, 'createOrderInstance').mockResolvedValue(createMockOrder());
-            jest.spyOn(orderRepository, 'save').mockResolvedValue(createMockOrder());
+            jest.spyOn(orderRepository, 'createAndSaveOrder').mockResolvedValue(createMockOrder());
             jest.spyOn(invoiceProducer, 'sendOrderCreated').mockResolvedValue();
 
             const result = await orderService.createOrder(createMockCreateOrderDto());
 
             expect(orderRepository.startTransaction).toHaveBeenCalled();
-            expect(orderRepository.createOrderInstance).toHaveBeenCalledWith(createMockCreateOrderDto(), session);
-            expect(orderRepository.save).toHaveBeenCalledWith(createMockOrder(), session);
+            expect(orderRepository.createAndSaveOrder).toHaveBeenCalledWith(createMockCreateOrderDto(), session);
             expect(invoiceProducer.sendOrderCreated).toHaveBeenCalledWith(createMockOrder().id);
             expect(session.commitTransaction).toHaveBeenCalled();
             expect(result).toEqual(createMockOrder());
@@ -106,7 +103,7 @@ describe('OrderService', () => {
 
         it('should handle errors during order creation', async () => {
             jest.spyOn(orderRepository, 'startTransaction').mockResolvedValue(session);
-            jest.spyOn(orderRepository, 'createOrderInstance').mockRejectedValue(new Error('Failed to create order'));
+            jest.spyOn(orderRepository, 'createAndSaveOrder').mockRejectedValue(new Error('Failed to create order'));
 
             await expect(orderService.createOrder(createMockCreateOrderDto())).rejects.toThrow('Failed to create order');
             expect(session.abortTransaction).toHaveBeenCalled();
@@ -117,7 +114,7 @@ describe('OrderService', () => {
         it('should fetch and return all orders', async () => {
             jest.spyOn(orderRepository, 'findBySellerId').mockResolvedValue([createMockOrder()]);
 
-            const result = await orderService.listOrdersBySellerId(createMockSellerPathParamDto());
+            const result = await orderService.listOrdersBySellerId(createMockSellerPathParamDto().sellerId);
 
             expect(orderRepository.findBySellerId).toHaveBeenCalled();
             expect(result).toEqual([createMockOrder()]);
@@ -128,17 +125,17 @@ describe('OrderService', () => {
         it('should return order details when order exists', async () => {
             jest.spyOn(orderRepository, 'findById').mockResolvedValue(createMockOrder());
 
-            const result = await orderService.getOrderDetails(createMockOrderPathParamDto());
+            const result = await orderService.getOrderDetails(createMockOrderPathParamDto().id);
 
-            expect(orderRepository.findById).toHaveBeenCalledWith(createMockOrderPathParamDto());
+            expect(orderRepository.findById).toHaveBeenCalledWith(createMockOrderPathParamDto().id);
             expect(result).toEqual(createMockOrder());
         });
 
         it('should throw NotFoundException when order does not exist', async () => {
             jest.spyOn(orderRepository, 'findById').mockResolvedValue(null);
 
-            await expect(orderService.getOrderDetails(createMockOrderPathParamDto())).rejects.toThrow(NotFoundException);
-            expect(orderRepository.findById).toHaveBeenCalledWith(createMockOrderPathParamDto());
+            await expect(orderService.getOrderDetails(createMockOrderPathParamDto().id)).rejects.toThrow(NotFoundException);
+            expect(orderRepository.findById).toHaveBeenCalledWith(createMockOrderPathParamDto().id);
         });
     });
 

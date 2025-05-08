@@ -75,17 +75,16 @@ describe('OrderModule (e2e)', () => {
   describe('GET /orders/:id', () => {
     it('should return order details', async () => {
       const session: ClientSession = await orderRepository.startTransaction();
-      const order = await orderRepository.createOrderInstance(
+      const order = await orderRepository.createAndSaveOrder(
           { price: 100, quantity: 2, productId: '12345', customerId: '67890', sellerId: 'a8098c1a-f86e-11da-bd1a-00112444be1e' },
           session
       );
-      await orderRepository.save(order, session);
 
       const response = await request(app.getHttpServer())
-          .get(`/orders/${order.orderId}`)
+          .get(`/orders/${order.id}`)
           .expect(200);
 
-      expect(response.body.orderId).toBe(order.orderId);
+      expect(response.body.orderId).toBe(order.id);
     });
 
     it('should return 404 if order not found', async () => {
@@ -98,16 +97,15 @@ describe('OrderModule (e2e)', () => {
   describe('PATCH /orders/:id/update', () => {
     it('should update an order', async () => {
       const session: ClientSession = await orderRepository.startTransaction();
-      const order = await orderRepository.createOrderInstance(
+      const order = await orderRepository.createAndSaveOrder(
           { price: 100, quantity: 2, productId: '12345', customerId: '67890', sellerId: 'a8098c1a-f86e-11da-bd1a-00112444be1e' },
           session,
       );
-      await orderRepository.save(order, session);
 
       const updateDto: UpdateOrderDto = { price: 200, quantity: 3, status: OrderStatus.Accepted };
 
       const response = await request(app.getHttpServer())
-          .patch(`/orders/${order.orderId}/update`)
+          .patch(`/orders/${order.id}/update`)
           .send(updateDto)
           .expect(200);
 
